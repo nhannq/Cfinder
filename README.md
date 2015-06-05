@@ -1,1 +1,1 @@
-# Cfinder update site
+# Cfinder update site for Eclipse
