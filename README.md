@@ -1,1 +1,1 @@
-# Cfinder update site for Eclipse
+# Cfinder update site for Eclipse Plugin
