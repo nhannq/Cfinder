@@ -225,7 +225,6 @@ public class Utils {
     // System.out.println("Expression " + expr);
     if (expr instanceof ArrayAccess) {
       ArrayAccess arrayAccess = (ArrayAccess) expr;
-      // System.out.println("ArrayAccess " + arrayAccess.getArray());
     } else if (expr instanceof Name) {
       Name name = (Name) expr;
       // System.out.println("Name " + name.getFullyQualifiedName());
