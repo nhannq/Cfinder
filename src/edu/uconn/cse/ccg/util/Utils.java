@@ -246,9 +246,6 @@ public class Utils {
     } else if (expr instanceof ArrayInitializer) {
       // System.out.println("ArrayInitializer ");
     } else if (expr instanceof Assignment) {
-      // System.out.println("Assignment ");
-      // System.out.println("left " + ((Assignment) expr).getLeftHandSide());
-      // System.out.println("left " + ((Assignment) expr).getRightHandSide());
       parseExpression(usedClass, LineInfo.LEFT_HANDSIDE, cu, ((Assignment) expr).getLeftHandSide());
       parseExpression(usedClass, LineInfo.RIGHT_HANDSIDE, cu,
           ((Assignment) expr).getRightHandSide());
