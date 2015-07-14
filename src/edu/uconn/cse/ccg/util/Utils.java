@@ -227,7 +227,6 @@ public class Utils {
       ArrayAccess arrayAccess = (ArrayAccess) expr;
     } else if (expr instanceof Name) {
       Name name = (Name) expr;
-      // System.out.println("Name " + name.getFullyQualifiedName());
     } else if (expr instanceof FieldAccess) {
       FieldAccess fileAccess = (FieldAccess) expr;
       // System.out.println("FileAccess " + fileAccess.getName().getFullyQualifiedName());
@@ -237,7 +236,6 @@ public class Utils {
     } else if (expr instanceof BooleanLiteral) {
       BooleanLiteral booleanLiteral = (BooleanLiteral) expr;
       String value = booleanLiteral.booleanValue() ? "true" : "false";
-      // System.out.println("BooleanLiteral " + value);
     } else if (expr instanceof VariableDeclarationExpression) {
       VariableDeclarationExpression variableDeclarationExpression =
           (VariableDeclarationExpression) expr;
