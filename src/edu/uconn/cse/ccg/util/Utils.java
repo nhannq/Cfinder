@@ -239,8 +239,6 @@ public class Utils {
     } else if (expr instanceof VariableDeclarationExpression) {
       VariableDeclarationExpression variableDeclarationExpression =
           (VariableDeclarationExpression) expr;
-      // System.out.println("VariableDeclarationExpression " +
-      // variableDeclarationExpression.toString());
     } else if (expr instanceof TypeLiteral) {
       // System.out.println("VariableDeclarationExpression ");
     } else if (expr instanceof ArrayCreation) {
