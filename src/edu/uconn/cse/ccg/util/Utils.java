@@ -182,7 +182,6 @@ public class Utils {
   }
 
   public static void parseStatement(Statement stmt) {
-    // System.out.println("Statement is " + stmt);
     if (stmt instanceof Block) {
       System.out.println("Block");
     } else if (stmt instanceof BreakStatement) {
