@@ -721,7 +721,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
     }
     // System.out.println("NORMAL TYPE");
     if (arguments.size() > 0) {
-      for (int i = 0; i < arguments.size() - 1; i++) {
+      for (int i = 0; i < arguments.size() - 1; ++i) {
         Expression expr = arguments.get(i);
         if (expr instanceof ClassInstanceCreation) {
           ClassInstanceCreation clIns = (ClassInstanceCreation) expr;
@@ -782,7 +782,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
   public static String getMethodSignatureFromParameters(List<SingleVariableDeclaration> parameters) {
     StringBuilder result = new StringBuilder("");
     if (parameters.size() > 0) {
-      for (int i = 0; i < parameters.size() - 1; i++) {
+      for (int i = 0; i < parameters.size() - 1; ++i) {
         SingleVariableDeclaration expr = parameters.get(i);
         if (expr.getType().resolveBinding() != null) {
           // String exprStr = expr.resolveBinding().getType().getQualifiedName(); //test
@@ -835,7 +835,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
   // parameters) {
   // StringBuilder result = new StringBuilder("");
   // if (parameters.size() > 0) {
-  // for (int i = 0; i < parameters.size() - 1; i++) {
+  // for (int i = 0; i < parameters.size() - 1; ++i) {
   // SingleVariableDeclaration expr = parameters.get(i);
   // if (expr.getType().resolveBinding() != null) {
   // // String exprStr = expr.resolveBinding().getType().getQualifiedName(); //test
@@ -1178,6 +1178,24 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
     return subClassInfo;
   }
 
+  void updateMethodUsageInformation(String calleeClassName, String callerClassName,
+      String calleeMethodName, String callerMethodName, int line) {
+    MethodUsage methodUsage;
+    if (methodUsageContainer.containsKey(calleeClassName)) {
+      methodUsage = methodUsageContainer.get(calleeClassName);
+    } else {
+      methodUsage = new MethodUsage(calleeClassName);
+    }
+    // the usage of addCallerMethod here is not good
+    // there are many instances of the same MethodInfo for a method
+    // List<Expression> arguments = node.arguments();
+    methodUsage.addCallerMethod(calleeMethodName, new MethodInfo(callerMethodName, callerClassName,
+        line, cPath));
+    // System.out.println("PUTTING " +
+    // calleeMethodName+":"+getMethodSignature(arguments) + " INTO " +
+    // calleeClassName);
+    methodUsageContainer.put(calleeClassName, methodUsage);
+  }
 
   /**
    * 
@@ -1209,7 +1227,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
           if (iCompilationUnit.getPath().toString().contains(source_path)
               && !iCompilationUnit.getPath().toString().contains("thrift/gen-java")) {
-            // && iCompilationUnit.getElementName().equals("Directories.java")) {
+            // && iCompilationUnit.getElementName().equals("QueryPagers.java")) {
             // {//AutoSavingCache.java")) {
             // //DefaultWALProvider.java")) {
 
@@ -1309,28 +1327,15 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                   return true;
                 }
 
-
-                // public boolean visit(MethodDeclaration node) {
-                // if (node != null && node.resolveBinding() != null && node.getBody() != null) {
-                //
-                // // System.out.println(node.getName().getFullyQualifiedName() + " : " +
-                // // node.resolveBinding().getReturnType().getQualifiedName());
-                // returnStatementMethodLineMap.put(cuMethodUsageInfo.getLineNumber(node.getBody().getStartPosition())
-                // + ":" + cuMethodUsageInfo.getLineNumber(node.getBody().getStartPosition() +
-                // node.getBody().getLength())
-                // , node.getName().getFullyQualifiedName() + ":" +
-                // getMethodSignatureFromParameters(node.parameters()));
-                // }
-                // return true;
-                // }
-
                 // methodinvocation is used to create information of involked method
                 @Override
                 public boolean visit(MethodInvocation node) {
                   if (node.resolveMethodBinding() != null
                       && node.resolveMethodBinding().getDeclaringClass() != null) {
+                    int line = cuMethodUsageInfo.getLineNumber(node.getStartPosition());
                     String calleeClassName =
                         node.resolveMethodBinding().getDeclaringClass().getQualifiedName();
+                    // System.out.println("calleeClassName " + calleeClassName + " at " + line);
                     // if (classHierarchyModel.containsKey(calleeClassName)) {
                     // if (classHierarchyModel.get(calleeClassName).isAbstractClass() ||
                     // classHierarchyModel.get(calleeClassName).isInterface()) {
@@ -1461,7 +1466,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                       // // .println("no arguments ");
                       // }
 
-                      int line = cuMethodUsageInfo.getLineNumber(node.getStartPosition());
+
                       String callerMethodName;
                       // for (String methodNameKey : returnStatementMethodLineMap.keySet()) {
                       // if (Integer.parseInt(methodNameKey.split(":")[0]) <= line
@@ -1498,47 +1503,55 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                       // " : "
                       // + node.getParent().getNodeType());
                       //
+
                       // System.out.print("METHODINVO " + calleeMethodName
-                      // + getMethodSignatureFromArguments(node.arguments()) + " OF " +
-                      // calleeClassName
-                      // + " AT " + line);
+                      // + getMethodSignatureFromArguments(node.arguments()) + " OF "
+                      // + calleeClassName + " AT " + line);
                       // System.out.println(" of " + callerMethodName + " in " + tCallerClassName);
 
                       // System.out.println(node.arguments() + " : "
                       // + getMethodSignature(node.arguments()));
-                      MethodUsage methodUsage;
-                      if (methodUsageContainer.containsKey(calleeClassName)) {
-                        methodUsage = methodUsageContainer.get(calleeClassName);
-                      } else {
-                        methodUsage = new MethodUsage(calleeClassName);
-                      }
-                      // the usage of addCallerMethod here is not good
-                      // there are many instances of the same MethodInfo for a method
                       List<Expression> arguments = node.arguments();
-                      methodUsage.addCallerMethod(calleeMethodName + ":"
-                          + getMethodSignatureFromArguments(arguments), new MethodInfo(
-                          callerMethodName, tCallerClassName, statementType, directVariable, line,
-                          cPath));
-                      // System.err.println("ADDING " + calleeMethodName + ":"
-                      // + getMethodSignature(arguments) + " FROM " + calleeClassName
-                      // + " CALLED BY " + callerMethodName + " OF " + tCallerClassName);
-                      methodUsageContainer.put(calleeClassName, methodUsage);
+                      updateMethodUsageInformation(calleeClassName, tCallerClassName,
+                          calleeMethodName + ":"
+                              + getMethodSignatureFromArguments(node.arguments()),
+                          callerMethodName, line);
+                      // MethodUsage methodUsage;
+                      // if (methodUsageContainer.containsKey(calleeClassName)) {
+                      // methodUsage = methodUsageContainer.get(calleeClassName);
+                      // } else {
+                      // methodUsage = new MethodUsage(calleeClassName);
+                      // }
+                      // // the usage of addCallerMethod here is not good
+                      // // there are many instances of the same MethodInfo for a method
+                      // List<Expression> arguments = node.arguments();
+                      // methodUsage.addCallerMethod(calleeMethodName + ":"
+                      // + getMethodSignatureFromArguments(arguments), new MethodInfo(
+                      // callerMethodName, tCallerClassName, statementType, directVariable, line,
+                      // cPath));
+                      // // System.err.println("ADDING " + calleeMethodName + ":"
+                      // // + getMethodSignature(arguments) + " FROM " + calleeClassName
+                      // // + " CALLED BY " + callerMethodName + " OF " + tCallerClassName);
+                      // methodUsageContainer.put(calleeClassName, methodUsage);
 
-                      if (methodUsageContainer.containsKey(originalCalleeClassName)) {
-                        methodUsage = methodUsageContainer.get(originalCalleeClassName);
-                      } else {
-                        methodUsage = new MethodUsage(originalCalleeClassName);
-                      }
-                      // the usage of addCallerMethod here is not good
-                      // there are many instances of the same MethodInfo for a method
-                      methodUsage.addCallerMethod(calleeMethodName + ":"
-                          + getMethodSignatureFromArguments(arguments), new MethodInfo(
-                          callerMethodName, tCallerClassName, statementType, directVariable, line,
-                          cPath));
-                      // System.err.println("ADDING " + calleeMethodName + ":"
-                      // + getMethodSignature(arguments) + " FROM " + calleeClassName
-                      // + " CALLED BY " + callerMethodName + " OF " + tCallerClassName);
-                      methodUsageContainer.put(originalCalleeClassName, methodUsage);
+                      updateMethodUsageInformation(originalCalleeClassName, tCallerClassName,
+                          calleeMethodName + ":" + getMethodSignatureFromArguments(arguments),
+                          callerMethodName, line);
+                      // if (methodUsageContainer.containsKey(originalCalleeClassName)) {
+                      // methodUsage = methodUsageContainer.get(originalCalleeClassName);
+                      // } else {
+                      // methodUsage = new MethodUsage(originalCalleeClassName);
+                      // }
+                      // // the usage of addCallerMethod here is not good
+                      // // there are many instances of the same MethodInfo for a method
+                      // methodUsage.addCallerMethod(calleeMethodName + ":"
+                      // + getMethodSignatureFromArguments(arguments), new MethodInfo(
+                      // callerMethodName, tCallerClassName, statementType, directVariable, line,
+                      // cPath));
+                      // // System.err.println("ADDING " + calleeMethodName + ":"
+                      // // + getMethodSignature(arguments) + " FROM " + calleeClassName
+                      // // + " CALLED BY " + callerMethodName + " OF " + tCallerClassName);
+                      // methodUsageContainer.put(originalCalleeClassName, methodUsage);
 
                       // Reflection Analysis
                       if (node.getName().getFullyQualifiedName().equals("getClass")) {
@@ -1567,15 +1580,19 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                             // correctSReflectionClassName
                             // + " at " + cuMethodUsageInfo.getLineNumber(node.getStartPosition())
                             // + " of " + tempICompilationUnit.getElementName());
-                            if (methodUsageContainer.containsKey(correctQReflectionClassName)) {
-                              methodUsage = methodUsageContainer.get(correctQReflectionClassName);
-                            } else {
-                              methodUsage = new MethodUsage(correctQReflectionClassName);
-                            }
-                            methodUsage.addCallerMethod(correctSReflectionClassName,
-                                new MethodInfo(callerMethodName, tCallerClassName, statementType,
-                                    directVariable, line, cPath));
-                            methodUsageContainer.put(correctQReflectionClassName, methodUsage);
+                            updateMethodUsageInformation(correctQReflectionClassName,
+                                tCallerClassName, correctQReflectionClassName, callerMethodName,
+                                line);
+
+                            // if (methodUsageContainer.containsKey(correctQReflectionClassName)) {
+                            // methodUsage = methodUsageContainer.get(correctQReflectionClassName);
+                            // } else {
+                            // methodUsage = new MethodUsage(correctQReflectionClassName);
+                            // }
+                            // methodUsage.addCallerMethod(correctSReflectionClassName,
+                            // new MethodInfo(callerMethodName, tCallerClassName, statementType,
+                            // directVariable, line, cPath));
+                            // methodUsageContainer.put(correctQReflectionClassName, methodUsage);
                             reflectionClasses.add(correctQReflectionClassName);
                           }
                         }
@@ -1590,9 +1607,11 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                 @Override
                 public boolean visit(ReturnStatement node) {
                   Expression expr = node.getExpression();
+                  int line = cuMethodUsageInfo.getLineNumber(node.getStartPosition());
                   if (expr instanceof ClassInstanceCreation) {
                     ClassInstanceCreation cInstanceCreation = (ClassInstanceCreation) expr;
                     if (cInstanceCreation.resolveTypeBinding() != null) {
+
                       // System.out.println("ClassInstanceCreation " +
                       // cInstanceCreation.resolveConstructorBinding().getName() + " OF " +
                       // cInstanceCreation.resolveTypeBinding().getQualifiedNam
@@ -1622,7 +1641,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                       if (calleeMethodName.equals("")) {
                         nbMethodNameEmpty++;
                       }
-                      int line = cuMethodUsageInfo.getLineNumber(node.getStartPosition());
+
                       String callerMethodName;
                       // for (String methodNameKey : returnStatementMethodLineMap.keySet()) {
                       // if (Integer.parseInt(methodNameKey.split(":")[0]) <= line
@@ -1652,19 +1671,24 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
                       // System.out.print(methodSignatureBuilder.toString());
                       // System.out.println(" of " + callerMethodName + " in " + tCallerClassName);
-                      MethodUsage methodUsage;
-                      if (methodUsageContainer.containsKey(calleeClassName)) {
-                        methodUsage = methodUsageContainer.get(calleeClassName);
-                      } else {
-                        methodUsage = new MethodUsage(calleeClassName);
-                      }
-                      // the usage of addCallerMethod here is not good
-                      // there are many instances of the same MethodInfo for a method
                       List<Expression> arguments = cInstanceCreation.arguments();
-                      methodUsage.addCallerMethod(calleeMethodName + ":"
-                          + getMethodSignatureFromArguments(arguments), new MethodInfo(
-                          callerMethodName, tCallerClassName, line, cPath));
-                      methodUsageContainer.put(calleeClassName, methodUsage);
+                      updateMethodUsageInformation(calleeClassName, tCallerClassName,
+                          calleeMethodName + ":" + getMethodSignatureFromArguments(arguments),
+                          callerMethodName, line);
+
+                      // MethodUsage methodUsage;
+                      // if (methodUsageContainer.containsKey(calleeClassName)) {
+                      // methodUsage = methodUsageContainer.get(calleeClassName);
+                      // } else {
+                      // methodUsage = new MethodUsage(calleeClassName);
+                      // }
+                      // // the usage of addCallerMethod here is not good
+                      // // there are many instances of the same MethodInfo for a method
+                      //
+                      // methodUsage.addCallerMethod(calleeMethodName + ":"
+                      // + getMethodSignatureFromArguments(arguments), new MethodInfo(
+                      // callerMethodName, tCallerClassName, line, cPath));
+                      // methodUsageContainer.put(calleeClassName, methodUsage);
                     }
                   }
                   // else {
@@ -1774,22 +1798,27 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
                       // System.out.print(methodSignatureBuilder.toString());
                       // System.out.println(" of " + callerMethodName + " in " + callerClassName);
-                      MethodUsage methodUsage;
-                      if (methodUsageContainer.containsKey(calleeClassName)) {
-                        methodUsage = methodUsageContainer.get(calleeClassName);
-                      } else {
-                        methodUsage = new MethodUsage(calleeClassName);
-                      }
-                      // the usage of addCallerMethod here is not good
-                      // there are many instances of the same MethodInfo for a method
                       List<Expression> arguments = node.arguments();
-                      methodUsage.addCallerMethod(calleeMethodName + ":"
-                          + getMethodSignatureFromArguments(arguments), new MethodInfo(
-                          callerMethodName, tCallerClassName, line, cPath));
-                      // System.out.println("PUTTING " +
-                      // calleeMethodName+":"+getMethodSignature(arguments) + " INTO " +
-                      // calleeClassName);
-                      methodUsageContainer.put(calleeClassName, methodUsage);
+                      updateMethodUsageInformation(calleeClassName, tCallerClassName,
+                          calleeMethodName + ":" + getMethodSignatureFromArguments(arguments),
+                          callerMethodName, line);
+
+                      // MethodUsage methodUsage;
+                      // if (methodUsageContainer.containsKey(calleeClassName)) {
+                      // methodUsage = methodUsageContainer.get(calleeClassName);
+                      // } else {
+                      // methodUsage = new MethodUsage(calleeClassName);
+                      // }
+                      // // the usage of addCallerMethod here is not good
+                      // // there are many instances of the same MethodInfo for a method
+                      //
+                      // methodUsage.addCallerMethod(calleeMethodName + ":"
+                      // + getMethodSignatureFromArguments(arguments), new MethodInfo(
+                      // callerMethodName, tCallerClassName, line, cPath));
+                      // // System.out.println("PUTTING " +
+                      // // calleeMethodName+":"+getMethodSignature(arguments) + " INTO " +
+                      // // calleeClassName);
+                      // methodUsageContainer.put(calleeClassName, methodUsage);
                     }
                   }
                   return true;
@@ -1816,24 +1845,31 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                   }
                   // System.out.println("INVOCATION " + node.resolveConstructorBinding().getName()
                   // + ":" + getMethodSignature(node.arguments()));
-                  MethodUsage methodUsage;
-                  if (methodUsageContainer.containsKey(tCallerClassName)) {
-                    methodUsage = methodUsageContainer.get(tCallerClassName);
-                  } else {
-                    methodUsage = new MethodUsage(tCallerClassName);
-                  }
+                  List<Expression> arguments = node.arguments();
+                  String callerMethodName = findMethodName(line);
                   // the usage of addCallerMethod here is not good
                   // there are many instances of the same MethodInfo for a method
-                  String callerMethodName = findMethodName(line);
-                  List<Expression> arguments = node.arguments();
-                  methodUsage.addCallerMethod(node.resolveConstructorBinding().getName() + ":"
-                      + getMethodSignatureFromArguments(arguments), new MethodInfo(
-                      callerMethodName, tCallerClassName, line, cPath));
-                  // System.out.println("PUTTING " + node.resolveConstructorBinding().getName() +
-                  // ":"
-                  // + getMethodSignature(arguments) + " INTO " + callerMethodName + " OF "
-                  // + tCallerClassName);
-                  methodUsageContainer.put(tCallerClassName, methodUsage);
+                  updateMethodUsageInformation(tCallerClassName, tCallerClassName, node
+                      .resolveConstructorBinding().getName()
+                      + ":"
+                      + getMethodSignatureFromArguments(arguments), callerMethodName, line);
+
+                  // MethodUsage methodUsage;
+                  // if (methodUsageContainer.containsKey(tCallerClassName)) {
+                  // methodUsage = methodUsageContainer.get(tCallerClassName);
+                  // } else {
+                  // methodUsage = new MethodUsage(tCallerClassName);
+                  // }
+                  // // List<Expression> arguments = node.arguments();
+                  // methodUsage.addCallerMethod(node.resolveConstructorBinding().getName() + ":"
+                  // + getMethodSignatureFromArguments(arguments), new MethodInfo(
+                  // callerMethodName, tCallerClassName, line, cPath));
+                  // // System.out.println("PUTTING " + node.resolveConstructorBinding().getName() +
+                  // // ":"
+                  // // + getMethodSignature(arguments) + " INTO " + callerMethodName + " OF "
+                  // // + tCallerClassName);
+                  // methodUsageContainer.put(tCallerClassName, methodUsage);
+
                   return true;
                 }
 
@@ -1886,21 +1922,25 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
                       String calleeClassName = fieldMethodMap.get(node.resolveBinding()).className;
 
-                      MethodUsage methodUsage;
-                      if (methodUsageContainer.containsKey(calleeClassName)) {
-                        methodUsage = methodUsageContainer.get(calleeClassName);
-                      } else {
-                        methodUsage = new MethodUsage(calleeClassName);
-                      }
-                      // the usage of addCallerMethod here is not good
-                      // there are many instances of the same MethodInfo for a method
-                      methodUsage.addCallerMethod(
+                      updateMethodUsageInformation(calleeClassName, tCallerClassName,
                           fieldMethodMap.get(node.resolveBinding()).methodSignature,
-                          new MethodInfo(callerMethodName, tCallerClassName, line, cPath));
-                      // System.out.println("PUTTING " + callerMethodName + " INTO "
-                      // + fieldMethodMap.get(node.resolveBinding()).methodSignature + " OF "
-                      // + calleeClassName + " AT " + line);
-                      methodUsageContainer.put(calleeClassName, methodUsage);
+                          callerMethodName, line);
+
+                      // MethodUsage methodUsage;
+                      // if (methodUsageContainer.containsKey(calleeClassName)) {
+                      // methodUsage = methodUsageContainer.get(calleeClassName);
+                      // } else {
+                      // methodUsage = new MethodUsage(calleeClassName);
+                      // }
+                      // // the usage of addCallerMethod here is not good
+                      // // there are many instances of the same MethodInfo for a method
+                      // methodUsage.addCallerMethod(
+                      // fieldMethodMap.get(node.resolveBinding()).methodSignature,
+                      // new MethodInfo(callerMethodName, tCallerClassName, line, cPath));
+                      // // System.out.println("PUTTING " + callerMethodName + " INTO "
+                      // // + fieldMethodMap.get(node.resolveBinding()).methodSignature + " OF "
+                      // // + calleeClassName + " AT " + line);
+                      // methodUsageContainer.put(calleeClassName, methodUsage);
                     }
 
                   }
@@ -1914,7 +1954,6 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
           }
         }
       }
-
     }
 
 
@@ -1963,17 +2002,19 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       for (String keye : temp.methodUsageMap.keySet()) {
         Set<MethodInfo> tempList = temp.methodUsageMap.get(keye);
         for (MethodInfo methodInfo : tempList) {
-          this.tmpFileWriter.write("++ METHOD " + keye + " IS_USED_BY "
-              + methodInfo.methodSignature + " OF " + methodInfo.className + "\n");
+          this.tmpFileWriter.write(new StringBuilder("++ METHOD ").append(keye)
+              .append(" IS_USED_BY ").append(methodInfo.methodSignature).append(" OF ")
+              .append(methodInfo.className).append(" AT ").append(methodInfo.lineNumber)
+              .append("\n").toString());
         }
         // System.out.println("Method " + keye + " is called " + tempList.size() + " times");
       }
       // }
     }
 
-    System.out.println("nbClassNameEmpty : " + nbClassNameEmpty);
-    System.out.println("nbMethodNameEmpty : " + nbMethodNameEmpty);
-    System.out.println("nbClassInstanceCreation : " + nbClassInstanceCreation);
+    // System.out.println("nbClassNameEmpty : " + nbClassNameEmpty);
+    // System.out.println("nbMethodNameEmpty : " + nbMethodNameEmpty);
+    // System.out.println("nbClassInstanceCreation : " + nbClassInstanceCreation);
     this.tmpFileWriter.write("Number_of_class: " + countCassClass + "\n");
     this.tmpFileWriter.close();
     return methodUsageContainer;
@@ -2106,7 +2147,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
   private int getParamID(List<Expression> arguments, String nodeName) {
     int idParam = 0;
-    for (int i = 0; i < arguments.size(); i++) {
+    for (int i = 0; i < arguments.size(); ++i) {
       // node.toString is the whole statement, we need to check it to get the order of
       // the configuration option in the invocation statement to do further analysis
       if (arguments.get(i).toString().contains(nodeName)) {
@@ -2337,7 +2378,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
   String findMethodName(int statementLine) {
     // String result = "";
     noContainedMethod = false;
-    for (int i = 1; i < methodNames.size(); i++) {
+    for (int i = 1; i < methodNames.size(); ++i) {
       if (startLineofMethods.get(i) <= statementLine && endLineofMethods.get(i) >= statementLine) {
         return methodNames.get(i);
       }
@@ -2788,7 +2829,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
         File[] listOfFiles = folder.listFiles();
         String line = null;
         if (listOfFiles != null) {
-          for (int i = 0; i < listOfFiles.length; i++) {
+          for (int i = 0; i < listOfFiles.length; ++i) {
             if (foundInOtherModules)
               break;
             File file = listOfFiles[i];
@@ -3103,7 +3144,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       // getMethodSignature(mInvocation.arguments());
       // List<Expression> arguments = mInvocation.arguments();
       // int idParam = 0;
-      // for (int i = 0; i < arguments.size(); i++) {
+      // for (int i = 0; i < arguments.size(); ++i) {
       // if (arguments.get(i).toString().contains(node.toString())) { //node.toString is the whole
       // statement, we need to check it to get the order of
       // //the configuration option in the invocation statement to do further analysis
@@ -3453,7 +3494,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       System.out.println("countAnalysisPointIsAbstractInterfaces : "
           + countAnalysisPointIsAbstractInterfaces);
       System.out.println("countAnalysisPointImplementation : " + countAnalysisPointImplementation);
-      for (int i = 0; i < maxLevel; i++) {
+      for (int i = 0; i < maxLevel; ++i) {
         System.out.println("countMUsage at level " + i + " : " + countMUsage[i] + " nonMUSage "
             + countNonMUsage[i] + " countNeighbor : " + countNeighbors[i] + " nonNeighbors "
             + countNonNeighbors[i] + " implementation : " + countImplementationHierarchyClasses[i]
@@ -3466,7 +3507,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
       System.out.println("countNonNeighbors : " + countNonNeighbors);
       System.out.println("countNonNeighborImplementation : " + countNonNeighborImplementation);
-      System.out.print("Number of Termianted Point " + realStartingPoints.size() +"\n");
+      System.out.print("Number of Termianted Point " + realStartingPoints.size() + "\n");
       // graph.printGraph(methodUsageContainer);
       this.partICCGWriter.write("data file\n");
       this.partICCGWriter.write("Number of Termianted Point " + realStartingPoints.size() + "\n");
@@ -3646,102 +3687,102 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
     return false;
   }
 
-//  boolean checkSubClass(PartICCGNode node, MethodInfo mInfo, MethodUsage mUsage,
-//      String realMethodName, boolean isStartingPoint, int level) throws IOException {
-//    boolean result = true;
-//    this.partICCGWriter.write("SubClass " + mInfo.className + " OF METHOD " + mInfo.methodSignature
-//        + " FOR " + node.getId() + "\n");
-//    // St
-//    Set<SuperInterface> sInfSet = subClassInfo.get(mInfo.className);
-//    boolean found = false;
-//    for (SuperInterface sInf : sInfSet) {
-//      if (sInf.overrideMethods.contains(realMethodName)) {
-//        // System.out.println("WENEEDTOTRACK " + " method " + realMethodName + " OF " +
-//        // sInf.className );
-//        MethodUsage mSuperUsage = methodUsageContainer.get(sInf.className);
-//        Set<MethodInfo> otherNeighbors = new HashSet<MethodInfo>();
-//        if (mSuperUsage != null) {
-//          for (String superMethodName : mSuperUsage.methodUsageMap.keySet()) {
-//            if (superMethodName.contains(realMethodName)) {
-//              found = true;
-//              // ||
-//              // (superMethodName.contains(realMethodName) && sInf.isParameter ==1 &&
-//              // superMethodName.contains(sInf.parameterType))) {
-//              this.partICCGWriter.write("WEFOUND " + superMethodName + " HAS " + realMethodName
-//                  + " FOR " + node.getId() + "\n");
-//              otherNeighbors = mSuperUsage.methodUsageMap.get(superMethodName);
-//              if (otherNeighbors != null) {
-//                for (MethodInfo neighbor : otherNeighbors) {
-//                  PartICCGNode adjNode = graph.getInternalNode(neighbor.toString());
-//                  if (adjNode != null) {
-//                    node.addNeighborId(graph.getInternalNode(neighbor.toString()).getId());
-//                    // this.partICCGWriter.write("Add a new edge " + node.getId() + "-"
-//                    // + graph.getInternalNode(neighbor.toString()).getId() + "\n");
-//                    isStartingPoint = false;
-//                  } else {
-//                    adjNode = new PartICCGNode(neighbor, level);
-//                    graph.addInternalNode(neighbor.toString(), adjNode);
-//                    node.addNeighborId(adjNode.getId());
-//                    // this.partICCGWriter.write("Add a new vertex " + adjNode.getId()
-//                    // + " and an edge " + node.getId() + "-" + adjNode.getId() + "\n");
-//                    isStartingPoint = false;
-//                  }
-//                  if (level == 0) {
-//                    nbOptionUsage++;
-//                  }
-//                }
-//                if (isStartingPoint) {
-//                  if (mxBeanClasses.contains(mInfo.className + "MXBean")
-//                      || mInfo.className.contains("MBean")) {
-//                    this.partICCGWriter.write("CalledByMXBean\n");
-//                    updateOptionStartingPointMap("CalledByMXBean");
-//                    countCalledByMXBean++;
-//                  } else {
-//                    updateOptionStartingPointMap("Starting Point");
-//                    countStartingPoint++;
-//                    System.out.println("Starting Point - NoMoreNeighborsData");
-//                  }
-//                } else {
-//                  graph.updateInternalNode(mInfo.toString(), node);
-//                  for (MethodInfo neighbor : otherNeighbors) {
-//                    constructPartICCG(graph.getInternalNode(neighbor.toString()),
-//                        methodUsageContainer, subClassInfo, 1, node.getId());
-//                  }
-//                }
-//              }
-//            }
-//          }
-//
-//        } else {
-//          // System.out.println("CANTFINDCLASS");
-//        }
-//      } else {
-//        // System.out.println("CANTFIND");
-//      }
-//    }
-//    if (!found) {
-//      // if (checkStandardLib())
-//      {
-//        for (String potentialMethod : mUsage.methodUsageMap.keySet()) {
-//          if (potentialMethod.split(":")[0].equals(realMethodName)) {
-//            if (mInfo.methodSignature.split("\t").length == potentialMethod.split("\t").length) {
-//              System.out.println("SAMEMETHODDIFFERENTPARAMETERS"
-//                  + mInfo.methodSignature.split("\t").length);
-//              for (String t1 : mInfo.methodSignature.split("\t")) {
-//                System.out.println(t1 + " =>  ");
-//              }
-//              for (String t1 : potentialMethod.split("\t")) {
-//                System.out.println(t1 + " <= ");
-//              }
-//              // System.out.println(realMethodName.split("\\*"));
-//              // System.out.println(potentialMethod.split("\\*"));
-//              found = true;
-//            }
-//          }
-//        }
-//      }
-//
-//    }
+  // boolean checkSubClass(PartICCGNode node, MethodInfo mInfo, MethodUsage mUsage,
+  // String realMethodName, boolean isStartingPoint, int level) throws IOException {
+  // boolean result = true;
+  // this.partICCGWriter.write("SubClass " + mInfo.className + " OF METHOD " + mInfo.methodSignature
+  // + " FOR " + node.getId() + "\n");
+  // // St
+  // Set<SuperInterface> sInfSet = subClassInfo.get(mInfo.className);
+  // boolean found = false;
+  // for (SuperInterface sInf : sInfSet) {
+  // if (sInf.overrideMethods.contains(realMethodName)) {
+  // // System.out.println("WENEEDTOTRACK " + " method " + realMethodName + " OF " +
+  // // sInf.className );
+  // MethodUsage mSuperUsage = methodUsageContainer.get(sInf.className);
+  // Set<MethodInfo> otherNeighbors = new HashSet<MethodInfo>();
+  // if (mSuperUsage != null) {
+  // for (String superMethodName : mSuperUsage.methodUsageMap.keySet()) {
+  // if (superMethodName.contains(realMethodName)) {
+  // found = true;
+  // // ||
+  // // (superMethodName.contains(realMethodName) && sInf.isParameter ==1 &&
+  // // superMethodName.contains(sInf.parameterType))) {
+  // this.partICCGWriter.write("WEFOUND " + superMethodName + " HAS " + realMethodName
+  // + " FOR " + node.getId() + "\n");
+  // otherNeighbors = mSuperUsage.methodUsageMap.get(superMethodName);
+  // if (otherNeighbors != null) {
+  // for (MethodInfo neighbor : otherNeighbors) {
+  // PartICCGNode adjNode = graph.getInternalNode(neighbor.toString());
+  // if (adjNode != null) {
+  // node.addNeighborId(graph.getInternalNode(neighbor.toString()).getId());
+  // // this.partICCGWriter.write("Add a new edge " + node.getId() + "-"
+  // // + graph.getInternalNode(neighbor.toString()).getId() + "\n");
+  // isStartingPoint = false;
+  // } else {
+  // adjNode = new PartICCGNode(neighbor, level);
+  // graph.addInternalNode(neighbor.toString(), adjNode);
+  // node.addNeighborId(adjNode.getId());
+  // // this.partICCGWriter.write("Add a new vertex " + adjNode.getId()
+  // // + " and an edge " + node.getId() + "-" + adjNode.getId() + "\n");
+  // isStartingPoint = false;
+  // }
+  // if (level == 0) {
+  // nbOptionUsage++;
+  // }
+  // }
+  // if (isStartingPoint) {
+  // if (mxBeanClasses.contains(mInfo.className + "MXBean")
+  // || mInfo.className.contains("MBean")) {
+  // this.partICCGWriter.write("CalledByMXBean\n");
+  // updateOptionStartingPointMap("CalledByMXBean");
+  // countCalledByMXBean++;
+  // } else {
+  // updateOptionStartingPointMap("Starting Point");
+  // countStartingPoint++;
+  // System.out.println("Starting Point - NoMoreNeighborsData");
+  // }
+  // } else {
+  // graph.updateInternalNode(mInfo.toString(), node);
+  // for (MethodInfo neighbor : otherNeighbors) {
+  // constructPartICCG(graph.getInternalNode(neighbor.toString()),
+  // methodUsageContainer, subClassInfo, 1, node.getId());
+  // }
+  // }
+  // }
+  // }
+  // }
+  //
+  // } else {
+  // // System.out.println("CANTFINDCLASS");
+  // }
+  // } else {
+  // // System.out.println("CANTFIND");
+  // }
+  // }
+  // if (!found) {
+  // // if (checkStandardLib())
+  // {
+  // for (String potentialMethod : mUsage.methodUsageMap.keySet()) {
+  // if (potentialMethod.split(":")[0].equals(realMethodName)) {
+  // if (mInfo.methodSignature.split("\t").length == potentialMethod.split("\t").length) {
+  // System.out.println("SAMEMETHODDIFFERENTPARAMETERS"
+  // + mInfo.methodSignature.split("\t").length);
+  // for (String t1 : mInfo.methodSignature.split("\t")) {
+  // System.out.println(t1 + " =>  ");
+  // }
+  // for (String t1 : potentialMethod.split("\t")) {
+  // System.out.println(t1 + " <= ");
+  // }
+  // // System.out.println(realMethodName.split("\\*"));
+  // // System.out.println(potentialMethod.split("\\*"));
+  // found = true;
+  // }
+  // }
+  // }
+  // }
+  //
+  // }
   //
   // if (!found) {
   // if (!checkExistanceOfAMethod(realMethodName, methodUsageContainer)) {
@@ -3924,10 +3965,8 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                 // System.err.println("HERE");
                 if (bClass != null) { // overried a method of the base class
                   this.partICCGWriter.write(node.getId() + " hasBaseClass - overrideMethod  "
-                      + mInfo.className
-                      + " METHOD: "
-                      + mInfo.methodSignature + " FROM " + bClass.split("::")[0] + " METHOD "
-                      + bClass.split("::")[1] + "\n");
+                      + mInfo.className + " METHOD: " + mInfo.methodSignature + " FROM "
+                      + bClass.split("::")[0] + " METHOD " + bClass.split("::")[1] + "\n");
                   // System.err.println("hasBaseClass  " + mInfo.className + " METHOD: "
                   // + mInfo.methodSignature + " FROM " + bClass.split("::")[0] + " METHOD "
                   // + bClass.split("::")[1]);
@@ -3937,11 +3976,10 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                 }
                 if (mInfo.methodSignature.equals("run:")) { // inherits a thread
                   if (cH.inheritClass("java.lang.Thread") || cH.inheritClass("java.lang.Runnable")) {
-                    this.partICCGWriter
-.write(node.getId()
-                        + " hasBaseClass - THREAD IMPLEMENTATION " + mInfo.className
-                        + " METHOD: " + mInfo.methodSignature + " at " + mInfo.lineNumber
-                        + " has simplename " + mInfo.getSimpleClassName() + "\n");
+                    this.partICCGWriter.write(node.getId()
+                        + " hasBaseClass - THREAD IMPLEMENTATION " + mInfo.className + " METHOD: "
+                        + mInfo.methodSignature + " at " + mInfo.lineNumber + " has simplename "
+                        + mInfo.getSimpleClassName() + "\n");
                     // System.out.println("THREAD IMPLEMENTATION " + mInfo.className + " METHOD: "
                     // + mInfo.methodSignature + " at " + mInfo.lineNumber + " has simplename "
                     // + mInfo.getSimpleClassName() + "\n");
@@ -3965,8 +4003,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
                   if (sMethod != null) {
                     this.partICCGWriter.write(node.getId()
-                        + " hasBaseClass - METHOD WITH HIERARCHY PARAMETERS "
-                        + mInfo.className
+                        + " hasBaseClass - METHOD WITH HIERARCHY PARAMETERS " + mInfo.className
                         + " METHOD: " + mInfo.methodSignature + "\nFROM " + sMethod + " at "
                         + mInfo.lineNumber);
                     // System.err.println("METHOD WITH HIERARCHY PARAMETERS " + mInfo.className
@@ -3976,8 +4013,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                     addNewNode(node, mInfo, sMethod, mInfo.className, level);
                   } else {
                     this.partICCGWriter.write(node.getId() + " hasBaseClass - NOSAMEMETHODNAME "
-                        + mInfo.toString()
-                        + "\n");
+                        + mInfo.toString() + "\n");
                     // System.err.println("NOSAMEMETHODNAME " + mInfo.toString());
                   }
                 }
@@ -4002,8 +4038,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                   // " METHOD: "
                   // + mInfo.methodSignature + " at " + mInfo.lineNumber);
                   this.partICCGWriter.write(node.getId()
-                      + " hasBaseClass - no neighbor - cannot detect  "
-                      + mInfo.className + ":"
+                      + " hasBaseClass - no neighbor - cannot detect  " + mInfo.className + ":"
                       + mInfo.methodSignature + " at " + mInfo.lineNumber + " path " + mInfo.path
                       + "\n");
                   this.partICCGWriter.write("---------\n");
@@ -4025,8 +4060,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                       // System.out.println("METHOD WITH HIERARCHY PARAMETERS " + mInfo.className
                       // + " METHOD: " + mInfo.methodSignature + "\nFROM " + sMethod + " at "
                       // + mInfo.lineNumber);
-                      this.partICCGWriter
-.write(node.getId()
+                      this.partICCGWriter.write(node.getId()
                           + " no base - no sub - METHOD WITH HIERARCHY PARAMETERS "
                           + mInfo.className + " METHOD: " + mInfo.methodSignature + "\nFROM "
                           + sMethod + " at " + mInfo.lineNumber + "\n");
@@ -4034,14 +4068,12 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                       addNewNode(node, mInfo, sMethod, mInfo.className, level);
                     } else {
                       this.partICCGWriter.write(node.getId()
-                          + " no base - no sub - NOSAMEMETHODNAME "
-                          + mInfo.toString() + "\n");
+                          + " no base - no sub - NOSAMEMETHODNAME " + mInfo.toString() + "\n");
                       // System.out.println("NOSAMEMETHODNAME " + mInfo.toString());
                     }
                   } else {
                     this.partICCGWriter.write(node.getId() + " no base - no sub - no neighbor "
-                        + mInfo.toString()
-                        + " at " + mInfo.lineNumber + "\n");
+                        + mInfo.toString() + " at " + mInfo.lineNumber + "\n");
                     // System.out.println("NO BASE - NO SUB " + mInfo.toString() + " at "
                     // + mInfo.lineNumber);
                   }
@@ -4054,10 +4086,9 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
               String bClass = cH.overrideMethod(mInfo.methodSignature);
               if (bClass != null) { // overried a method of the base class
                 this.partICCGWriter.write(node.getId()
-                    + " Abstract or Interface - overrideMethod  "
-                    + mInfo.className
-                    + " METHOD: " + mInfo.methodSignature + " FROM " + bClass.split("::")[0]
-                    + " METHOD " + bClass.split("::")[1] + "\n");
+                    + " Abstract or Interface - overrideMethod  " + mInfo.className + " METHOD: "
+                    + mInfo.methodSignature + " FROM " + bClass.split("::")[0] + " METHOD "
+                    + bClass.split("::")[1] + "\n");
                 // System.out.println("Abstracr or Interface hasBaseClass  " + mInfo.className
                 // + " METHOD: " + mInfo.methodSignature + " FROM " + bClass.split("::")[0]
                 // + " METHOD " + bClass.split("::")[1]);
@@ -4071,11 +4102,10 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                   // System.out.println("Abstracr or Interface METHOD WITH HIERARCHY PARAMETERS "
                   // + mInfo.className + " METHOD: " + mInfo.methodSignature + "\nFROM " + sMethod
                   // + " at " + mInfo.lineNumber);
-                  this.partICCGWriter
-.write(node.getId()
+                  this.partICCGWriter.write(node.getId()
                       + " Abstract or Interface  - METHOD WITH HIERARCHY PARAMETERS "
-                          + mInfo.className + " METHOD: " + mInfo.methodSignature + "\nFROM "
-                          + sMethod + " at " + mInfo.lineNumber + "\n");
+                      + mInfo.className + " METHOD: " + mInfo.methodSignature + "\nFROM " + sMethod
+                      + " at " + mInfo.lineNumber + "\n");
                   reached = true;
                   addNewNode(node, mInfo, sMethod, mInfo.className, level);
                 } else {
@@ -4085,8 +4115,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
               }
               if (!reached) {
                 this.partICCGWriter.write(node.getId() + " Abstract or Interface - no neighbor "
-                    + mInfo.toString()
-                    + " at " + mInfo.lineNumber + "\n");
+                    + mInfo.toString() + " at " + mInfo.lineNumber + "\n");
                 this.partICCGWriter.write("---------\n");
               }
             }
@@ -4157,9 +4186,8 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
           String bClass = cH.overrideMethod(mInfo.methodSignature);
           if (bClass != null) { // overried a method of the base class
             this.partICCGWriter.write(node.getId() + " no mUsage - overrideMethod "
-                + mInfo.className + " METHOD: "
-                + mInfo.methodSignature + " FROM " + bClass.split("::")[0] + " METHOD "
-                + bClass.split("::")[1] + "\n");
+                + mInfo.className + " METHOD: " + mInfo.methodSignature + " FROM "
+                + bClass.split("::")[0] + " METHOD " + bClass.split("::")[1] + "\n");
             countImplementationHierarchyClasses[level]++;
             addNewNode(node, mInfo, bClass.split("::")[1], bClass.split("::")[0], level);
             reached = true;
@@ -4178,8 +4206,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
           countNonMUsage[level]++;
           // System.out.println("No mUsage " + mInfo.toString() + " at " + mInfo.lineNumber);
           this.partICCGWriter.write(node.getId() + " no mUsage - " + mInfo.toString() + " at "
-              + mInfo.lineNumber
-              + "\n");
+              + mInfo.lineNumber + "\n");
           this.partICCGWriter.write("---------\n");
         }
         /*
