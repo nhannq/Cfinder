@@ -47,7 +47,6 @@ import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.InfixExpression.Operator;
@@ -74,8 +73,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -581,8 +581,12 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
     this.propReadFileName = propReadFileName;
     this.eclipseDirectoryPath = eclipseDirectoryPath;
     try {
+      Calendar cal = Calendar.getInstance();
+      SimpleDateFormat sdf = new SimpleDateFormat("MM-dd HH:mm");
+      // System.out.println( sdf.format(cal.getTime()) );
       this.partICCGWriter =
-          new FileWriter(eclipseDirectoryPath + "ccgresult/partICCG-" + resultFileName);
+          new FileWriter(eclipseDirectoryPath + "ccgresult/partICCG-" + resultFileName
+              + sdf.format(cal.getTime()));
       this.partIICCGWriter =
           new FileWriter(eclipseDirectoryPath + "ccgresult/partIICCG-" + resultFileName);
       this.tmpFileWriter = new FileWriter(eclipseDirectoryPath + "ccgtemp/2-" + resultFileName);
@@ -3933,6 +3937,12 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
       String realMethodName = mInfo.methodSignature.split(":")[0].trim(); // without parameter types
 
+      ClassHierarchy cH = null;
+
+      if (classHierarchyModel.containsKey(mInfo.className)) {
+        // this.partICCGWriter.write("HAS CLASS HIERARCHY\n");
+        cH = classHierarchyModel.get(mInfo.className);
+      }
       if (mUsage != null) {
         // if (level == 5) {
         // System.out.println("AT_LEVEL 1 " + mInfo.methodSignature + " : " + realMethodName);
@@ -3942,39 +3952,56 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
         neighbors = mUsage.methodUsageMap.get(mInfo.methodSignature);
 
         if (neighbors != null) {
-          this.partICCGWriter.write(node.getId() + " " + mInfo.className + ":"
-              + mInfo.methodSignature + " " + mInfo.lineNumber + " HAS NEIGHBORS\n");
-          // if (level == 1) {
-          // System.out.println("AT_LEVEL 1");
-          countNeighbors[level]++;
-          // }
+          if (!cH.isUndefined()) {
+            String classType = "dontknowtype";
+            if (cH != null) {
+              if (cH.isImplementationClass()) {
+                classType = "implementation";
+              } else if (cH.isInterface()) {
+                classType = "interface";
+              } else if (cH.isAbstractClass()) {
+                classType = "abstract";
+              } else if (cH.isUndefined()) {
+                classType = "undefined";
+              }
+            }
+            this.partICCGWriter.write(classType + " " + node.getId() + " " + mInfo.className + ":"
+                + mInfo.methodSignature + " " + mInfo.lineNumber + " HAS NEIGHBORS\n");
+            // if (level == 1) {
+            // System.out.println("AT_LEVEL 1");
+            countNeighbors[level]++;
+            // }
 
-          nbNeighbors += neighbors.size();
-          isStartingPoint = true;
-          graph.updateInternalNode(mInfo.toString(), node);
-          for (MethodInfo neighbor : neighbors) {
-            addToGraph(node, neighbor, level);
-          }
-          if (isStartingPoint) {
-            if (checkStartingPoints(mInfo, "", node.getId())) {
-              countStartingPoint++;
-              updateOptionStartingPointMap("Starting Point");
-              // this.partICCGWriter.write("Starting Point - No More Neighbors Data\n");
-              realStartingPoints.add(mInfo.toString());
+            nbNeighbors += neighbors.size();
+            isStartingPoint = true;
+            graph.updateInternalNode(mInfo.toString(), node);
+            for (MethodInfo neighbor : neighbors) {
+              addToGraph(node, neighbor, level);
+            }
+            if (isStartingPoint) {
+              if (checkStartingPoints(mInfo, "", node.getId())) {
+                countStartingPoint++;
+                updateOptionStartingPointMap("Starting Point");
+                // this.partICCGWriter.write("Starting Point - No More Neighbors Data\n");
+                realStartingPoints.add(mInfo.toString());
+              }
+            } else {
+              // graph.updateInternalNode(mInfo.toString(), node);
+              for (MethodInfo neighbor : neighbors) {
+                // System.out.println("neighbor " + neighbor.toString());
+                constructPartICCG(graph.getInternalNode(neighbor.toString()), methodUsageContainer,
+                    subClassInfo, level + 1, node.getId());
+              }
             }
           } else {
-            // graph.updateInternalNode(mInfo.toString(), node);
-            for (MethodInfo neighbor : neighbors) {
-              // System.out.println("neighbor " + neighbor.toString());
-              constructPartICCG(graph.getInternalNode(neighbor.toString()), methodUsageContainer,
-                  subClassInfo, level + 1, node.getId());
+            if (!checkStartingPoints(mInfo, realMethodName, node.getId())) {
+              this.partICCGWriter.write("undefined - cannot detect");
             }
           }
         } else { // this node does not have neighbors
           // this.partICCGWriter.write(mInfo.methodSignature + " DOES NOT HAVE NEIGHBORS\n");
-          if (classHierarchyModel.containsKey(mInfo.className)) {
+          if (cH != null) {
             // this.partICCGWriter.write("HAS CLASS HIERARCHY\n");
-            ClassHierarchy cH = classHierarchyModel.get(mInfo.className);
             boolean reached = false;
 
             if (cH.isImplementationClass()) {
@@ -4103,7 +4130,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                   countStartingPoint++;
                 }
               }
-            } else {
+            } else if (cH.isInterface() || cH.isAbstractClass()) { // Abstracr or Interface
               // this.partICCGWriter.write("Abstracr or Interface");
 
               if (mUsage.checkSameMethodName(mInfo.methodSignature, classToInterface)) {
@@ -4125,6 +4152,12 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                 }
               }
               if (!reached) {
+                PartICCGNode p1Node = this.graph.getInternalNode(parentID);
+                if (classHierarchyModel.containsKey(mInfo.className)) {
+                  // this.partICCGWriter.write("HAS CLASS HIERARCHY\n");
+                  ClassHierarchy parentCH =
+                      classHierarchyModel.get(p1Node.getMethodInfo().className);
+                }//
                 String bClass = cH.overrideMethod(mInfo.methodSignature);
                 if (bClass != null) { // overried a method of the base class
                   this.partICCGWriter.write(node.getId()
@@ -4217,8 +4250,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
           reached = true;
         }
         if (!reached) {
-          if (classHierarchyModel.containsKey(mInfo.className)) {
-            ClassHierarchy cH = classHierarchyModel.get(mInfo.className);
+          if (cH != null) {
             String bClass = cH.overrideMethod(mInfo.methodSignature);
             if (bClass != null) { // overried a method of the base class
               this.partICCGWriter.write(node.getId() + " no mUsage - overrideMethod "
