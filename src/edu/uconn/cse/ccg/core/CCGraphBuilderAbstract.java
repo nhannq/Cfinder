@@ -482,6 +482,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
   String global_source_path;
   private String simpleClassName;
   private FileWriter tmpFileWriter;
+  private FileWriter tempFileWriter;
 
   String oracleFolder;
   private String theConfigurationName;
@@ -585,6 +586,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       this.partIICCGWriter =
           new FileWriter(eclipseDirectoryPath + "ccgresult/partIICCG-" + resultFileName);
       this.tmpFileWriter = new FileWriter(eclipseDirectoryPath + "ccgtemp/2-" + resultFileName);
+      this.tempFileWriter = new FileWriter(eclipseDirectoryPath + "ccgtemp/temp" + resultFileName);
       this.classHierarchytmpFileWriter =
           new FileWriter(eclipseDirectoryPath + "ccgtemp/CH-" + resultFileName);
     } catch (IOException e) {
@@ -1335,6 +1337,29 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                     int line = cuMethodUsageInfo.getLineNumber(node.getStartPosition());
                     String calleeClassName =
                         node.resolveMethodBinding().getDeclaringClass().getQualifiedName();
+                    Expression nodeExpr = node.getExpression();
+                    if (nodeExpr != null) {
+                      if (nodeExpr instanceof Name) {
+                        // System.out.println("NAME");
+                        Name name = (Name) nodeExpr;
+
+                        // System.out.println(calleeClassName + " : "
+                        // + name.resolveTypeBinding().getQualifiedName() + " :: "
+                        // + node.getName().getFullyQualifiedName());
+                        calleeClassName = name.resolveTypeBinding().getQualifiedName();
+
+                      } else if (nodeExpr instanceof MethodInvocation) {
+                        try {
+                          tempFileWriter.write(calleeClassName + " : " + node.getParent() + ":"
+                              + node.getName().getFullyQualifiedName() + " :: " + nodeExpr + "\n\n");
+                        } catch (IOException e) {
+                          // TODO Auto-generated catch block
+                          e.printStackTrace();
+                        }
+                      } else {
+
+                      }
+                    }
                     // System.out.println("calleeClassName " + calleeClassName + " at " + line);
                     // if (classHierarchyModel.containsKey(calleeClassName)) {
                     // if (classHierarchyModel.get(calleeClassName).isAbstractClass() ||
@@ -1356,8 +1381,8 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                     // }
 
                     String originalCalleeClassName = calleeClassName;
-                    if (node.resolveMethodBinding().getDeclaringClass().isParameterizedType()
-                        || calleeClassName.contains("<")) {
+                    // if (node.resolveMethodBinding().getDeclaringClass().isParameterizedType()
+                    if (calleeClassName.contains("<")) {
                       StringBuilder strBuilder = new StringBuilder();
                       calleeClassName =
                           strBuilder
@@ -1569,6 +1594,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                                 qReflectionClassName.substring(
                                     qReflectionClassName.indexOf("<") + 1,
                                     qReflectionClassName.indexOf(">"));
+                            // simple name
                             String sReflectionClassName =
                                 reflectedClass.resolveTypeBinding().getName();
                             String correctSReflectionClassName =
@@ -1581,7 +1607,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                             // + " at " + cuMethodUsageInfo.getLineNumber(node.getStartPosition())
                             // + " of " + tempICompilationUnit.getElementName());
                             updateMethodUsageInformation(correctQReflectionClassName,
-                                tCallerClassName, correctQReflectionClassName, callerMethodName,
+                                tCallerClassName, correctSReflectionClassName, callerMethodName,
                                 line);
 
                             // if (methodUsageContainer.containsKey(correctQReflectionClassName)) {
@@ -2017,6 +2043,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
     // System.out.println("nbClassInstanceCreation : " + nbClassInstanceCreation);
     this.tmpFileWriter.write("Number_of_class: " + countCassClass + "\n");
     this.tmpFileWriter.close();
+    this.tempFileWriter.close();
     return methodUsageContainer;
   }
 
@@ -3845,7 +3872,8 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       }
     } else {
       graph.updateInternalNode(mInfo.toString(), node);
-      this.partICCGWriter.write("Traversing " + newMInfo.toString() + "\n");
+      this.partICCGWriter.write("Traversing " + newMInfo.toString() + " " + newMInfo.lineNumber
+          + "\n");
       // System.out.println("Traversing " + threadClass.toString());
       constructPartICCG(graph.getInternalNode(newMInfo.toString()), methodUsageContainer,
           subClassInfo, level + 1, node.getId());
@@ -3915,7 +3943,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
         if (neighbors != null) {
           this.partICCGWriter.write(node.getId() + " " + mInfo.className + ":"
-              + mInfo.methodSignature + " HAS NEIGHBORS\n");
+              + mInfo.methodSignature + " " + mInfo.lineNumber + " HAS NEIGHBORS\n");
           // if (level == 1) {
           // System.out.println("AT_LEVEL 1");
           countNeighbors[level]++;
@@ -3947,13 +3975,6 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
           if (classHierarchyModel.containsKey(mInfo.className)) {
             // this.partICCGWriter.write("HAS CLASS HIERARCHY\n");
             ClassHierarchy cH = classHierarchyModel.get(mInfo.className);
-            // if (cH.isImplementationClass() && !cH.hasBaseClass() && !cH.hasSubClass()) {
-            // if (cH.overrideMethod(mInfo.methodSignature)) {
-            // System.out.println("!hasBaseClass !hasSubClass " + mInfo.className + " METHOD: " +
-            // mInfo.methodSignature);
-            // countImplementationHierarchyClasses[level]++;
-            // }
-            // }
             boolean reached = false;
 
             if (cH.isImplementationClass()) {
@@ -3961,19 +3982,6 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
               if (cH.hasBaseClass()) {
                 // this.partICCGWriter.write("HasBaseClass\n");
                 // JDT can help to detect overried method
-                String bClass = cH.overrideMethod(mInfo.methodSignature);
-                // System.err.println("HERE");
-                if (bClass != null) { // overried a method of the base class
-                  this.partICCGWriter.write(node.getId() + " hasBaseClass - overrideMethod  "
-                      + mInfo.className + " METHOD: " + mInfo.methodSignature + " FROM "
-                      + bClass.split("::")[0] + " METHOD " + bClass.split("::")[1] + "\n");
-                  // System.err.println("hasBaseClass  " + mInfo.className + " METHOD: "
-                  // + mInfo.methodSignature + " FROM " + bClass.split("::")[0] + " METHOD "
-                  // + bClass.split("::")[1]);
-                  countImplementationHierarchyClasses[level]++;
-                  addNewNode(node, mInfo, bClass.split("::")[1], bClass.split("::")[0], level);
-                  reached = true;
-                }
                 if (mInfo.methodSignature.equals("run:")) { // inherits a thread
                   if (cH.inheritClass("java.lang.Thread") || cH.inheritClass("java.lang.Runnable")) {
                     this.partICCGWriter.write(node.getId()
@@ -4004,7 +4012,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                   if (sMethod != null) {
                     this.partICCGWriter.write(node.getId()
                         + " hasBaseClass - METHOD WITH HIERARCHY PARAMETERS " + mInfo.className
-                        + " METHOD: " + mInfo.methodSignature + "\nFROM " + sMethod + " at "
+                        + " METHOD: " + mInfo.methodSignature + " FROM " + sMethod + " at "
                         + mInfo.lineNumber);
                     // System.err.println("METHOD WITH HIERARCHY PARAMETERS " + mInfo.className
                     // + " METHOD: " + mInfo.methodSignature + "\nFROM " + sMethod + " at "
@@ -4032,6 +4040,20 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                   // this.partICCGWriter.write("Reached\n");
                   countNeighbors[level]++;
                 } else {
+                  String bClass = cH.overrideMethod(mInfo.methodSignature);
+                  if (bClass != null) { // overried a method of the base class
+                    this.partICCGWriter.write(node.getId() + " HASBASECLASS - overrideMethod  "
+                        + mInfo.className + " METHOD: " + mInfo.methodSignature + " FROM "
+                        + bClass.split("::")[0] + " METHOD " + bClass.split("::")[1] + "\n");
+                    // System.err.println("hasBaseClass  " + mInfo.className + " METHOD: "
+                    // + mInfo.methodSignature + " FROM " + bClass.split("::")[0] + " METHOD "
+                    // + bClass.split("::")[1]);
+                    countImplementationHierarchyClasses[level]++;
+                    addNewNode(node, mInfo, bClass.split("::")[1], bClass.split("::")[0], level);
+                    reached = true;
+                  }
+                }
+                if (!reached) {
                   countNonNeighbors[level]++;
                   countNonNeighbor++;
                   // System.out.println("no information about usage  " + mInfo.className +
@@ -4083,19 +4105,8 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
               }
             } else {
               // this.partICCGWriter.write("Abstracr or Interface");
-              String bClass = cH.overrideMethod(mInfo.methodSignature);
-              if (bClass != null) { // overried a method of the base class
-                this.partICCGWriter.write(node.getId()
-                    + " Abstract or Interface - overrideMethod  " + mInfo.className + " METHOD: "
-                    + mInfo.methodSignature + " FROM " + bClass.split("::")[0] + " METHOD "
-                    + bClass.split("::")[1] + "\n");
-                // System.out.println("Abstracr or Interface hasBaseClass  " + mInfo.className
-                // + " METHOD: " + mInfo.methodSignature + " FROM " + bClass.split("::")[0]
-                // + " METHOD " + bClass.split("::")[1]);
-                countImplementationHierarchyClasses[level]++;
-                addNewNode(node, mInfo, bClass.split("::")[1], bClass.split("::")[0], level);
-                reached = true;
-              } else if (mUsage.checkSameMethodName(mInfo.methodSignature, classToInterface)) {
+
+              if (mUsage.checkSameMethodName(mInfo.methodSignature, classToInterface)) {
                 countCallCheckSameMethod++;
                 String sMethod = mUsage.getSameMethodName(mInfo.methodSignature, classToInterface);
                 if (sMethod != null) {
@@ -4111,6 +4122,21 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                 } else {
                   this.partICCGWriter.write(node.getId()
                       + " Abstract or Interface - NOSAMEMETHODNAME \n");
+                }
+              }
+              if (!reached) {
+                String bClass = cH.overrideMethod(mInfo.methodSignature);
+                if (bClass != null) { // overried a method of the base class
+                  this.partICCGWriter.write(node.getId()
+                      + " Abstract or Interface - overrideMethod  " + mInfo.className + " METHOD: "
+                      + mInfo.methodSignature + " FROM " + bClass.split("::")[0] + " METHOD "
+                      + bClass.split("::")[1] + "\n");
+                  // System.out.println("Abstracr or Interface hasBaseClass  " + mInfo.className
+                  // + " METHOD: " + mInfo.methodSignature + " FROM " + bClass.split("::")[0]
+                  // + " METHOD " + bClass.split("::")[1]);
+                  countImplementationHierarchyClasses[level]++;
+                  addNewNode(node, mInfo, bClass.split("::")[1], bClass.split("::")[0], level);
+                  reached = true;
                 }
               }
               if (!reached) {
@@ -4181,18 +4207,6 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       } else { // no method usage information
         // this.partICCGWriter.write(mInfo.methodSignature + " DOES NOT HAVE METHOD USAGE\n");
         boolean reached = false;
-        if (classHierarchyModel.containsKey(mInfo.className)) {
-          ClassHierarchy cH = classHierarchyModel.get(mInfo.className);
-          String bClass = cH.overrideMethod(mInfo.methodSignature);
-          if (bClass != null) { // overried a method of the base class
-            this.partICCGWriter.write(node.getId() + " no mUsage - overrideMethod "
-                + mInfo.className + " METHOD: " + mInfo.methodSignature + " FROM "
-                + bClass.split("::")[0] + " METHOD " + bClass.split("::")[1] + "\n");
-            countImplementationHierarchyClasses[level]++;
-            addNewNode(node, mInfo, bClass.split("::")[1], bClass.split("::")[0], level);
-            reached = true;
-          }
-        }
         if (checkStartingPoints(mInfo, realMethodName, node.getId())) {
           countStartingPoint++;
           // System.out.println("DETERMINED POINT " + mInfo.className + " : "
@@ -4201,6 +4215,20 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
           // + mInfo.methodSignature + " at " + mInfo.lineNumber + "\n");
           // this.partICCGWriter.write("---------\n");
           reached = true;
+        }
+        if (!reached) {
+          if (classHierarchyModel.containsKey(mInfo.className)) {
+            ClassHierarchy cH = classHierarchyModel.get(mInfo.className);
+            String bClass = cH.overrideMethod(mInfo.methodSignature);
+            if (bClass != null) { // overried a method of the base class
+              this.partICCGWriter.write(node.getId() + " no mUsage - overrideMethod "
+                  + mInfo.className + " METHOD: " + mInfo.methodSignature + " FROM "
+                  + bClass.split("::")[0] + " METHOD " + bClass.split("::")[1] + "\n");
+              countImplementationHierarchyClasses[level]++;
+              addNewNode(node, mInfo, bClass.split("::")[1], bClass.split("::")[0], level);
+              reached = true;
+            }
+          }
         }
         if (!reached) {
           countNonMUsage[level]++;
