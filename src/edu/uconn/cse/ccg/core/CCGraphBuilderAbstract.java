@@ -3468,8 +3468,8 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
           // MethodUsage mUsage = methodUsageContainer.get(mInfo.className);
           this.partICCGWriter.write("BEGIN\n");
           this.partICCGWriter.write(count++ + " Method " + mInfo.methodSignature + " of class "
-              + mInfo.className + " for option " + mInfo.configName + "\n");
-          int mode = 0; // 0: CCG for the whole program, 1: CCG for each option
+              + mInfo.className + " for ConfigurationOption " + mInfo.configName + "\n");
+          int mode = 1; // 0: CCG for the whole program, 1: CCG for each option
           if (mode == 0) {
             PartICCGNode node = graph.getInternalNode(mInfo.toString());
             if (node == null) {
