@@ -188,22 +188,21 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       add("org.apache.cassandra.thrift.CustomTThreadPoolServer:CustomTThreadPoolServer");
       add("org.apache.cassandra.db.SystemKeyspace:updateTokens");
       // added 06302015
-      // add("org.apache.cassandra.thrift.CassandraServer:get_count"); // removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:get"); // removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:multiget_count"); // removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:multiget_slice"); // removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:get_slice"); // removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:system_update_column_family");// removed
-      // 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:system_add_keyspace");// removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:system_add_column_family");// removed
-      // 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:login");// removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:execute_prepared_cql_query"); //removed
-      // 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:execute_cql_query"); // removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:system_update_keyspace");
-      // add("org.apache.cassandra.thrift.CassandraServer:get_paged_slice");
+       add("org.apache.cassandra.thrift.CassandraServer:get_count"); // removed 07152015
+       add("org.apache.cassandra.thrift.CassandraServer:get"); // removed 07152015
+       add("org.apache.cassandra.thrift.CassandraServer:multiget_count"); // removed 07152015
+       add("org.apache.cassandra.thrift.CassandraServer:multiget_slice"); // removed 07152015
+       add("org.apache.cassandra.thrift.CassandraServer:get_slice"); // removed 07152015
+       add("org.apache.cassandra.thrift.CassandraServer:system_update_column_family");// removed 07152015
+       add("org.apache.cassandra.thrift.CassandraServer:system_add_keyspace");// removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:system_add_column_family");// removed
+                                                                                  // 07152015
+       add("org.apache.cassandra.thrift.CassandraServer:login");// removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:execute_prepared_cql_query"); // removed
+                                                                                     // 07152015
+       add("org.apache.cassandra.thrift.CassandraServer:execute_cql_query"); // removed 07152015
+       add("org.apache.cassandra.thrift.CassandraServer:system_update_keyspace");
+       add("org.apache.cassandra.thrift.CassandraServer:get_paged_slice");
       add("org.apache.cassandra.thrift.CassandraServer:execute_prepared_cql_query");
       add("org.apache.cassandra.thrift.CustomTThreadPoolServer:buildTServer");
       // add("org.apache.cassandra.thrift.CassandraServer:describe_local_ring"); // removed 07152015
@@ -4615,10 +4614,6 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       if (cH.getType() == ClassHierarchy.INTERFACE) {
         count3++;
       }
-      // tempFileWriter.write("Class " + clName + "\n");
-      // tempFileWriter.write(classHierarchyModel.get(clName).toString() + "\n");
-      // tempFileWriter.write("===\n");
-
     }
     System.out.println("Number of nodes in classHierarchyModel " + classHierarchyModel.size());
     System.out.println("countExternalInterfaceAbstractClasses : "
