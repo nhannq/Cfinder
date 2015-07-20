@@ -205,27 +205,27 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
        add("org.apache.cassandra.thrift.CassandraServer:get_paged_slice");
       add("org.apache.cassandra.thrift.CassandraServer:execute_prepared_cql_query");
       add("org.apache.cassandra.thrift.CustomTThreadPoolServer:buildTServer");
-      // add("org.apache.cassandra.thrift.CassandraServer:describe_local_ring"); // removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:describe_ring");
-      // add("org.apache.cassandra.thrift.CassandraServer:describe_schema_versions"); //removed
-      // 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:get_range_slices"); // removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:describe_cluster_name");
-      // add("org.apache.cassandra.thrift.CassandraServer:execute_prepared_cql3_query");// removed
-      // 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:remove_counter");
-      // add("org.apache.cassandra.thrift.CassandraServer:add");
-      // add("org.apache.cassandra.thrift.CassandraServer:get_indexed_slices");
-      // add("org.apache.cassandra.thrift.CassandraServer:insert");// removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:cas");// removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:batch_mutate");// removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:atomic_batch_mutate");// removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:remove");
-      // add("org.apache.cassandra.thrift.CassandraServer:truncate"); //removed 07152015
-      // add("org.apache.cassandra.thrift.CassandraServer:system_drop_column_family");
-      // add("org.apache.cassandra.thrift.CassandraServer:describe_snitch");
-      // add("org.apache.cassandra.thrift.CassandraServer:describe_splits");
-      // add("org.apache.cassandra.thrift.CassandraServer:describe_partitioner");
+      add("org.apache.cassandra.thrift.CassandraServer:describe_local_ring"); // removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:describe_ring");
+      add("org.apache.cassandra.thrift.CassandraServer:describe_schema_versions"); // removed
+                                                                                   // 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:get_range_slices"); // removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:describe_cluster_name");
+      add("org.apache.cassandra.thrift.CassandraServer:execute_prepared_cql3_query");// removed
+                                                                                     // 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:remove_counter");
+      add("org.apache.cassandra.thrift.CassandraServer:add");
+      add("org.apache.cassandra.thrift.CassandraServer:get_indexed_slices");
+      add("org.apache.cassandra.thrift.CassandraServer:insert");// removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:cas");// removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:batch_mutate");// removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:atomic_batch_mutate");// removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:remove");
+      add("org.apache.cassandra.thrift.CassandraServer:truncate"); // removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:system_drop_column_family");
+      add("org.apache.cassandra.thrift.CassandraServer:describe_snitch");
+      add("org.apache.cassandra.thrift.CassandraServer:describe_splits");
+      add("org.apache.cassandra.thrift.CassandraServer:describe_partitioner");
       add("org.apache.cassandra.repair.StreamingRepairTask:onSuccess"); // added 07022015
       add("org.apache.cassandra.repair.StreamingRepairTask:onFailure");
       add("org.apache.cassandra.locator.YamlFileNetworkTopologySnitch:YamlFileNetworkTopologySnitch");
