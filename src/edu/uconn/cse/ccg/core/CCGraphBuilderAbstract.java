@@ -641,30 +641,6 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                   return true;
                 }
 
-                @Override
-                public boolean visit(Assignment node) {
-                  // System.out.println(node.getLeftHandSide() + " : " + node.getRightHandSide());
-                  // System.out.println(node.getFullyQualifiedName());
-                  // if (declaredName.contains(node.getFullyQualifiedName())) {
-                  // System.out.println();
-                  // if (node.getParent().getNodeType() == ASTNode.ASSIGNMENT) {
-                  // Assignment assignment = (Assignment)node.getParent();
-                  // System.out.println(node.getFullyQualifiedName() + " : " +
-                  // assignment.getRightHandSide());
-                  // } else if (node.getParent().getParent().getNodeType() == ASTNode.ASSIGNMENT) {
-                  // Assignment assignment = (Assignment)node.getParent().getParent();
-                  // System.out.println(node.getFullyQualifiedName() + " : " +
-                  // assignment.getRightHandSide());
-                  // } else if (node.getParent().getParent().getParent().getNodeType() ==
-                  // ASTNode.ASSIGNMENT) {
-                  // Assignment assignment = (Assignment)node.getParent().getParent().getParent();
-                  // System.out.println(node.getFullyQualifiedName() + " : " +
-                  // assignment.getRightHandSide());
-                  // }
-                  // }
-                  return true;
-                }
-
               });
             }
           }
@@ -834,60 +810,6 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
     return result.toString();
   }
-
-  // test
-  // public static String getMethodSignatureFromParameters2(List<SingleVariableDeclaration>
-  // parameters) {
-  // StringBuilder result = new StringBuilder("");
-  // if (parameters.size() > 0) {
-  // for (int i = 0; i < parameters.size() - 1; ++i) {
-  // SingleVariableDeclaration expr = parameters.get(i);
-  // if (expr.getType().resolveBinding() != null) {
-  // // String exprStr = expr.resolveBinding().getType().getQualifiedName(); //test
-  // String exprStr = expr.getType().resolveBinding().getQualifiedName();
-  // StringBuilder exprStrBuilder = new StringBuilder();
-  // if (exprStr.contains("<")) {
-  // exprStrBuilder.append(exprStr.substring(0, exprStr.indexOf("<"))); // +1)).append(">");
-  // exprStr = exprStrBuilder.toString();
-  // }
-  // if (expr.getExtraDimensions() == 1 && !exprStr.contains("[")) {
-  // exprStr = exprStr + "[]";
-  // }
-  // result.append(exprStr).append("\t");
-  // // result.append(expr.getType().resolveBinding().getQualifiedName()).append("\t");
-  // } else {
-  // result.append("nil\t");
-  // }
-  // }
-  // // System.out.println(parameters.get(parameters.size()-1));
-  // SingleVariableDeclaration expr = parameters.get(parameters.size() - 1);
-  // if (expr.getType().resolveBinding() != null) {
-  // System.out.println("expr " + expr);
-  // String exprStr = expr.getType().resolveBinding().getQualifiedName();
-  // StringBuilder exprStrBuilder = new StringBuilder();
-  // if (exprStr.contains("<")) {
-  // exprStrBuilder.append(exprStr.substring(0, exprStr.indexOf("<"))); // +1)).append(">");
-  // exprStr = exprStrBuilder.toString();
-  // }
-  // if (expr.getExtraDimensions() == 1 && !exprStr.contains("[")) {
-  // exprStr = exprStr + "[]";
-  // }
-  // System.out.println("exprStr " + exprStr + " " + expr.getExtraDimensions());
-  // result.append(exprStr);
-  // // result.append(expr.getType().resolveBinding().getQualifiedName());
-  // } else {
-  // result.append("nil");
-  // }
-  // }
-  //
-  // // for (SingleVariableDeclaration param : parameters) {
-  // // if (param.getType().resolveBinding() != null)
-  // // result.append(param.getType().resolveBinding().getQualifiedName());
-  // // }
-  //
-  // return result.toString();
-  // }
-
 
   boolean checkStandardLib(String className) {
     for (String lib : javaLib) {
