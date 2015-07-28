@@ -188,21 +188,22 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       add("org.apache.cassandra.thrift.CustomTThreadPoolServer:CustomTThreadPoolServer");
       add("org.apache.cassandra.db.SystemKeyspace:updateTokens");
       // added 06302015
-       add("org.apache.cassandra.thrift.CassandraServer:get_count"); // removed 07152015
-       add("org.apache.cassandra.thrift.CassandraServer:get"); // removed 07152015
-       add("org.apache.cassandra.thrift.CassandraServer:multiget_count"); // removed 07152015
-       add("org.apache.cassandra.thrift.CassandraServer:multiget_slice"); // removed 07152015
-       add("org.apache.cassandra.thrift.CassandraServer:get_slice"); // removed 07152015
-       add("org.apache.cassandra.thrift.CassandraServer:system_update_column_family");// removed 07152015
-       add("org.apache.cassandra.thrift.CassandraServer:system_add_keyspace");// removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:get_count"); // removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:get"); // removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:multiget_count"); // removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:multiget_slice"); // removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:get_slice"); // removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:system_update_column_family");// removed
+                                                                                     // 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:system_add_keyspace");// removed 07152015
       add("org.apache.cassandra.thrift.CassandraServer:system_add_column_family");// removed
                                                                                   // 07152015
-       add("org.apache.cassandra.thrift.CassandraServer:login");// removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:login");// removed 07152015
       add("org.apache.cassandra.thrift.CassandraServer:execute_prepared_cql_query"); // removed
                                                                                      // 07152015
-       add("org.apache.cassandra.thrift.CassandraServer:execute_cql_query"); // removed 07152015
-       add("org.apache.cassandra.thrift.CassandraServer:system_update_keyspace");
-       add("org.apache.cassandra.thrift.CassandraServer:get_paged_slice");
+      add("org.apache.cassandra.thrift.CassandraServer:execute_cql_query"); // removed 07152015
+      add("org.apache.cassandra.thrift.CassandraServer:system_update_keyspace");
+      add("org.apache.cassandra.thrift.CassandraServer:get_paged_slice");
       add("org.apache.cassandra.thrift.CassandraServer:execute_prepared_cql_query");
       add("org.apache.cassandra.thrift.CustomTThreadPoolServer:buildTServer");
       add("org.apache.cassandra.thrift.CassandraServer:describe_local_ring"); // removed 07152015
@@ -1219,6 +1220,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
 
                 @Override
                 public boolean visit(MethodDeclaration node) {
+                  if (node.resolveBinding() != null) {
                   if (node.resolveBinding().isDeprecated()) {
                     int line = cuMethodUsageInfo.getLineNumber(node.getStartPosition());
                     // System.err.println("ISDeprecated " + node.getName().getFullyQualifiedName());
@@ -1243,6 +1245,8 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                         + node.getName().getFullyQualifiedName() + ":"
                         + getMethodSignatureFromParameters(node.parameters()));
                   }
+                  }
+
                   startLineofMethods.add(cuMethodUsageInfo.getLineNumber(node.getStartPosition()));
                   endLineofMethods.add(cuMethodUsageInfo.getLineNumber(node.getStartPosition()
                       + node.getLength()));
@@ -3390,7 +3394,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
           this.partICCGWriter.write("BEGIN\n");
           this.partICCGWriter.write(count++ + " Method " + mInfo.methodSignature + " of class "
               + mInfo.className + " for ConfigurationOption " + mInfo.configName + "\n");
-          int mode = 1; // 0: CCG for the whole program, 1: CCG for each option
+          int mode = 0; // 0: CCG for the whole program, 1: CCG for each option
           if (mode == 0) {
             PartICCGNode node = graph.getInternalNode(mInfo.toString());
             if (node == null) {
@@ -3528,62 +3532,63 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
     optionStartingPointMap.put(theConfigurationName, pointSet);
   }
 
-  boolean checkStartingPoints(MethodInfo mInfo, String realMethodName, int nId) throws IOException {
+  boolean checkStartingPoints(PartICCGNode node, MethodInfo mInfo, String realMethodName, int nId)
+      throws IOException {
     String keyToCheck = mInfo.className + ":" + realMethodName;
     String fullKeyToCheck = mInfo.className + ":" + mInfo.methodSignature;
     this.partICCGWriter.write("checkStartingPoints " + nId + " " + fullKeyToCheck + "\n");
-    boolean result = true;
+    boolean result = false;
     if (mxBeanClasses.contains(mInfo.className + "MXBean") || mInfo.className.contains("MBean")) {
       this.partICCGWriter.write("CalledByMXBean\n");
       this.partICCGWriter.write("---------\n");
       // System.err.println("MXBean");
       updateOptionStartingPointMap("CalledByMXBean");
       countCalledByMXBean++;
-      return result;
+      result = true;
     } else if (mInfo.methodSignature.contains("test") || (mInfo.className.contains("Test"))
         || (calledByTestFramework.contains(keyToCheck))) {
       this.partICCGWriter.write("CalledByTestFramework\n");
       this.partICCGWriter.write("---------\n");
       updateOptionStartingPointMap("CalledByTestFramework");
       countCalledByTestFramework++;
-      return result;
+      result = true;
     } else if (realMethodName.equals("main")) {
       updateOptionStartingPointMap("CalledByMain");
       this.partICCGWriter.write("CalledByMain\n");
       this.partICCGWriter.write("---------\n");
       countCalledByMain++;
-      return result;
+      result = true;
     } else if (calledByMain.contains(keyToCheck)) {
       updateOptionStartingPointMap("CalledByMain");
       this.partICCGWriter.write("CalledByMain\n");
       this.partICCGWriter.write("---------\n");
       countCalledByMain++;
-      return result;
+      result = true;
     } else if (mInfo.methodSignature.contains("protobuf.RpcController")) {
       this.partICCGWriter.write("CalledByProtocolBuffer\n");
       this.partICCGWriter.write("---------\n");
       updateOptionStartingPointMap("CalledByProtocolBuffer");
       countCalledByProtocolBuffer++;
-      return result;
+      result = true;
     } else if (realMethodName.equals("run")) {
       this.partICCGWriter.write("CalledByRun\n");
       this.partICCGWriter.write("---------\n");
       updateOptionStartingPointMap("CalledByRun");
       countCalledByRun++;
-      return result;
+      result = true;
     } else if (calledByMBean.contains(keyToCheck)) {
       this.partICCGWriter.write("CalledByMBean\n");
       this.partICCGWriter.write("---------\n");
       // System.err.println("MBEAN");
       updateOptionStartingPointMap("CalledByMBean");
       countCalledByMBean++;
-      return result;
+      result = true;
     } else if (calledByCommandLine.contains(keyToCheck)) {
       this.partICCGWriter.write("CalledByCommandLine\n");
       this.partICCGWriter.write("---------\n");
       updateOptionStartingPointMap("CalledByCommandLine");
       countCalledByCommandLine++;
-      return result;
+      result = true;
 
     } else if (unsureStartingPoints.contains(keyToCheck)) {
       // System.err.println(keyToCheck);
@@ -3591,52 +3596,55 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       this.partICCGWriter.write("---------\n");
       // System.err.println("UNSURE");
       updateOptionStartingPointMap("Unsure");
-      return result;
+      result = true;
     } else if (calledByOtherProgram.contains(keyToCheck)) {
       // System.err.println("HEREWEGO");
       this.partICCGWriter.write("CalledByOtherProgram\n");
       this.partICCGWriter.write("---------\n");
       updateOptionStartingPointMap("CalledByOtherProgram");
       countCalledByOtherProgram++;
-      return result;
+      result = true;
     } else if (mInfo.className.contains("Servlet") || (mInfo.className.contains("_jsp"))) {
       this.partICCGWriter.write("CalledByServlet\n");
       this.partICCGWriter.write("---------\n");
       updateOptionStartingPointMap("CalledByServlet");
       countCalledByServlet++;
-      return result;
+      result = true;
     } else if (mInfo.methodSignature.contains("test") || (mInfo.className.contains("Test"))) {
       this.partICCGWriter.write("CalledByTestFramework");
       this.partICCGWriter.write("---------\n");
       updateOptionStartingPointMap("CalledByTestFramework");
       countCalledByTestFramework++;
-      return result;
+      result = true;
     } else if (mInfo.className.contains("Servlet") || (mInfo.className.contains("_jsp"))) {
       this.partICCGWriter.write("CalledByServlet");
       this.partICCGWriter.write("---------\n");
       updateOptionStartingPointMap("CalledByServlet");
       countCalledByServlet++;
-      return result;
+      result = true;
     } else if (calledByOtherModule.contains(keyToCheck)) {
       this.partICCGWriter.write("CalledByOtherModule\n");
       this.partICCGWriter.write("---------\n");
       System.out.println("CalledByOtherModule");
-      return result;
+      result = true;
       // TODO : need to check this later
     } else if (calledByOtherMethodIncludingParameter.contains(fullKeyToCheck)) {
       this.partICCGWriter.write("CalledByOtherIncludingParameter\n");
       this.partICCGWriter.write("---------\n");
-      return result;
+      result = true;
     } else if (depracatedMethod.contains(fullKeyToCheck)) {
       this.partICCGWriter.write("DeprecatedMethod\n");
       this.partICCGWriter.write("---------\n");
-      return result;
+      result = true;
     } else if (realMethodName.equals("serialize")) {// && mInfo.className.contains("Serializer")) {
       this.partICCGWriter.write("SERIALIZE\n");
       this.partICCGWriter.write("---------\n");
-      return result;
+      result = true;
     }
-    return false;
+    if (result) {
+      this.graph.addStartingNode(node);
+    }
+    return result;
   }
 
   // boolean checkSubClass(PartICCGNode node, MethodInfo mInfo, MethodUsage mUsage,
@@ -3789,7 +3797,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
     isStartingPoint = true;
     addToGraph(node, newMInfo, level);
     if (isStartingPoint) {
-      if (checkStartingPoints(mInfo, "", node.getId())) {
+      if (checkStartingPoints(node, mInfo, "", node.getId())) {
         countStartingPoint++;
         updateOptionStartingPointMap("Starting Point");
         // this.partICCGWriter.write("Starting Point - No More Neighbors Data\n");
@@ -3900,7 +3908,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
               addToGraph(node, neighbor, level);
             }
             if (isStartingPoint) {
-              if (checkStartingPoints(mInfo, "", node.getId())) {
+              if (checkStartingPoints(node, mInfo, "", node.getId())) {
                 countStartingPoint++;
                 updateOptionStartingPointMap("Starting Point");
                 // this.partICCGWriter.write("Starting Point - No More Neighbors Data\n");
@@ -3915,7 +3923,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
               }
             }
           } else {
-            if (!checkStartingPoints(mInfo, realMethodName, node.getId())) {
+            if (!checkStartingPoints(node, mInfo, realMethodName, node.getId())) {
               this.partICCGWriter.write("undefined - cannot detect");
             }
           }
@@ -3973,7 +3981,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                     // System.err.println("NOSAMEMETHODNAME " + mInfo.toString());
                   }
                 }
-                if (checkStartingPoints(mInfo, realMethodName, node.getId())) {
+                if (checkStartingPoints(node, mInfo, realMethodName, node.getId())) {
                   countStartingPoint++;
                   // System.out.println("DETERMINED POINT " + mInfo.className + " : "
                   // + mInfo.methodSignature + " at " + mInfo.lineNumber);
@@ -4021,7 +4029,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
                 // System.err.println(mInfo.className + " : " + mInfo.methodSignature + " "
                 // + cH.subClassesToString());
               } else if (!cH.hasBaseClass() && !cH.hasSubClass()) {
-                if (!checkStartingPoints(mInfo, realMethodName, node.getId())) {
+                if (!checkStartingPoints(node, mInfo, realMethodName, node.getId())) {
                   if (mUsage.checkSameMethodName(mInfo.methodSignature, classToInterface)) {
                     countCallCheckSameMethod++;
                     String sMethod =
@@ -4161,7 +4169,7 @@ public abstract class CCGraphBuilderAbstract implements CCGraphBuilder {
       } else { // no method usage information
         // this.partICCGWriter.write(mInfo.methodSignature + " DOES NOT HAVE METHOD USAGE\n");
         boolean reached = false;
-        if (checkStartingPoints(mInfo, realMethodName, node.getId())) {
+        if (checkStartingPoints(node, mInfo, realMethodName, node.getId())) {
           countStartingPoint++;
           // System.out.println("DETERMINED POINT " + mInfo.className + " : "
           // + mInfo.methodSignature + " at " + mInfo.lineNumber);
